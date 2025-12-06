@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Le Paradis PMS</title>
+    <link href="https://unpkg.com/tailwindcss@^2/dist/tailwind.min.css" rel="stylesheet">
+    
+    <!-- FIXED: Firebase v8 (compatible with your code) -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+</head>
+<body class="bg-gray-50">
+    <div id="app" class="min-h-screen p-4">
+        <!-- Loading message shows immediately -->
+        <div id="loading" class="text-center py-10">
+            <h1 class="text-2xl font-bold text-gray-700">Loading Le Paradis PMS...</h1>
+            <p class="text-gray-500 mt-2">Please wait while we load the application.</p>
+        </div>
+    </div>
+
+    <script>
+        // Show loading immediately
+        document.getElementById('loading').style.display = 'block';
+        
+        // Wait for Firebase to load
+        if (typeof firebase === 'undefined') {
+            document.getElementById('loading').innerHTML = 
+                '<h1 class="text-red-600 text-2xl">Error: Firebase not loaded</h1>' +
+                '<p>Check browser console for details.</p>';
+        } else {
+            // Your Firebase Config
+            const firebaseConfig = {
+                apiKey: "AIzaSyClCxKTiAITxF-438ItREpeOkPoE0wrRu4",
+                authDomain: "leparadis-zanzibar.firebaseapp.com",
+                projectId: "leparadis-zanzibar",
+                storageBucket: "leparadis-zanzibar.firebasestorage.app",
+                messagingSenderId: "747197473688",
+                appId: "1:747197473688:web:129ff4dc343d8b76dcc1ed"
+            };
+
+            try {
+                // Initialize Firebase
+                const app = firebase.initializeApp(firebaseConfig);
+                const db = firebase.firestore();
+                
+                // Hide loading
+                document.getElementById('loading').style.display = 'none';
+                
+                // PMS App - Your actual application code starts here
+                // This is where you would render your Vue/React app
+                document.getElementById('app').innerHTML = `
+                    <div class="max-w-4xl mx-auto">
+                        <h1 class="text-3xl font-bold text-blue-600 mb-6">Le Paradis Property Management System</h1>
+                        <div class="bg-white rounded-lg shadow p-6">
+                            <p class="text-gray-700">Firebase connected successfully!</p>
+                            <p class="text-green-600 mt-2">✓ Application is working</p>
+                            <div class="mt-4 p-4 bg-blue-50 rounded">
+                                <p class="text-sm">Add your PMS interface components here.</p>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                console.log("Firebase initialized successfully!");
+                
+            } catch (error) {
+                document.getElementById('loading').innerHTML = 
+                    '<h1 class="text-red-600 text-2xl">Firebase Error</h1>' +
+                    '<p class="text-gray-700">' + error.message + '</p>';
+                console.error("Firebase error:", error);
+            }
+        }
+    </script>
+</body>
+</html>
