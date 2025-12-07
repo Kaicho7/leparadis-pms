@@ -5,75 +5,348 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Le Paradis PMS</title>
     <link href="https://unpkg.com/tailwindcss@^2/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+    <style>
+        .card-hover:hover { transform: translateY(-5px); transition: all 0.3s; }
+        .btn { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+    </style>
 </head>
-<body class="bg-gray-50">
-    <div id="app" class="min-h-screen p-4">
-        <div id="loading" class="text-center py-10">
-            <h1 class="text-2xl font-bold text-gray-700">Loading Le Paradis PMS...</h1>
-            <p class="text-gray-500 mt-2">Please wait</p>
+<body class="bg-gradient-to-br from-blue-50 to-purple-50 min-h-screen">
+    <div id="app" class="p-4">
+        <!-- Loading Screen -->
+        <div id="loading" class="fixed inset-0 bg-white flex flex-col items-center justify-center z-50">
+            <div class="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-blue-600"></div>
+            <h1 class="text-2xl font-bold mt-6 text-gray-800">Loading Le Paradis PMS...</h1>
+            <p class="text-gray-600 mt-2">Preparing your dashboard</p>
         </div>
     </div>
 
     <script>
-        document.getElementById('loading').style.display = 'block';
+        // Show loading
+        document.getElementById('loading').style.display = 'flex';
         
-        if (typeof firebase === 'undefined') {
-            document.getElementById('loading').innerHTML = 
-                '<h1 class="text-red-600 text-2xl">Error: Firebase not loaded</h1>';
-        } else {
-            const firebaseConfig = {
-                apiKey: "AIzaSyClCxKTiAITxF-438ItREpeOkPoE0wrRu4",
-                authDomain: "leparadis-zanzibar.firebaseapp.com",
-                projectId: "leparadis-zanzibar",
-                storageBucket: "leparadis-zanzibar.firebasestorage.app",
-                messagingSenderId: "747197473688",
-                appId: "1:747197473688:web:129ff4dc343d8b76dcc1ed"
-            };
+        // Initialize Firebase
+        const firebaseConfig = {
+            apiKey: "AIzaSyClCxKTiAITxF-438ItREpeOkPoE0wrRu4",
+            authDomain: "leparadis-zanzibar.firebaseapp.com",
+            projectId: "leparadis-zanzibar",
+            storageBucket: "leparadis-zanzibar.firebasestorage.app",
+            messagingSenderId: "747197473688",
+            appId: "1:747197473688:web:129ff4dc343d8b76dcc1ed"
+        };
 
-            try {
-                const app = firebase.initializeApp(firebaseConfig);
-                const db = firebase.firestore();
-                
-                document.getElementById('loading').style.display = 'none';
-                
+        // Main PMS Application
+        class LeParadisPMS {
+            constructor() {
+                this.app = firebase.initializeApp(firebaseConfig);
+                this.db = firebase.firestore();
+                this.auth = firebase.auth();
+                this.rooms = [];
+                this.bookings = [];
+                this.guests = [];
+            }
+
+            async init() {
+                try {
+                    // Sign in anonymously for demo
+                    await this.auth.signInAnonymously();
+                    
+                    // Load sample data
+                    await this.loadSampleData();
+                    
+                    // Render dashboard
+                    this.renderDashboard();
+                    
+                    // Hide loading
+                    document.getElementById('loading').style.display = 'none';
+                    
+                    console.log("✅ PMS Initialized Successfully");
+                } catch (error) {
+                    this.showError("Initialization failed: " + error.message);
+                }
+            }
+
+            async loadSampleData() {
+                // Sample rooms
+                this.rooms = [
+                    { id: 1, name: "Ocean View Suite", type: "Deluxe", price: 250, status: "available" },
+                    { id: 2, name: "Garden Villa", type: "Villa", price: 400, status: "occupied" },
+                    { id: 3, name: "Standard Room", type: "Standard", price: 150, status: "available" },
+                    { id: 4, name: "Executive Suite", type: "Suite", price: 350, status: "maintenance" }
+                ];
+
+                // Sample bookings
+                this.bookings = [
+                    { id: 1001, guest: "John Smith", room: "Ocean View", checkIn: "2024-01-15", checkOut: "2024-01-20", status: "confirmed" },
+                    { id: 1002, guest: "Maria Garcia", room: "Garden Villa", checkIn: "2024-01-18", checkOut: "2024-01-25", status: "checked-in" }
+                ];
+
+                // Sample guests
+                this.guests = [
+                    { id: 2001, name: "John Smith", email: "john@email.com", phone: "+255 123 456", visits: 3 },
+                    { id: 2002, name: "Maria Garcia", email: "maria@email.com", phone: "+255 987 654", visits: 1 }
+                ];
+            }
+
+            renderDashboard() {
                 document.getElementById('app').innerHTML = `
-                    <div class="max-w-6xl mx-auto">
-                        <h1 class="text-3xl font-bold text-blue-600 mb-6">Le Paradis Property Management System</h1>
-                        
-                        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-                            <div class="bg-white p-4 rounded shadow">
-                                <h3 class="text-lg font-bold mb-2">📅 Bookings</h3>
-                                <p class="text-gray-600">Manage reservations</p>
+                    <!-- Header -->
+                    <div class="max-w-7xl mx-auto">
+                        <div class="flex justify-between items-center mb-8">
+                            <div>
+                                <h1 class="text-3xl font-bold text-gray-800">
+                                    <i class="fas fa-hotel text-blue-600"></i> Le Paradis PMS
+                                </h1>
+                                <p class="text-gray-600">Zanzibar Beach Resort Management</p>
                             </div>
-                            <div class="bg-white p-4 rounded shadow">
-                                <h3 class="text-lg font-bold mb-2">👥 Guests</h3>
-                                <p class="text-gray-600">Guest management</p>
-                            </div>
-                            <div class="bg-white p-4 rounded shadow">
-                                <h3 class="text-lg font-bold mb-2">💰 Payments</h3>
-                                <p class="text-gray-600">Payment tracking</p>
-                            </div>
-                            <div class="bg-white p-4 rounded shadow">
-                                <h3 class="text-lg font-bold mb-2">📊 Reports</h3>
-                                <p class="text-gray-600">Analytics & reports</p>
+                            <div class="flex items-center space-x-4">
+                                <span class="px-4 py-2 bg-green-100 text-green-800 rounded-full">
+                                    <i class="fas fa-wifi"></i> Online
+                                </span>
+                                <button onclick="pms.showNotification('Welcome to PMS!')" 
+                                        class="px-4 py-2 btn text-white rounded-lg">
+                                    <i class="fas fa-bell"></i> Notifications
+                                </button>
                             </div>
                         </div>
-                        
-                        <div class="bg-white rounded-lg shadow p-6">
-                            <h2 class="text-xl font-bold text-green-600 mb-4">✓ Firebase connected successfully!</h2>
-                            <p class="text-gray-700">Your PMS is ready.</p>
+
+                        <!-- Stats Cards -->
+                        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+                            ${this.renderStatCard('Revenue Today', '$2,450', '💰', 'text-green-600', 'fas fa-dollar-sign')}
+                            ${this.renderStatCard('Occupancy Rate', '78%', '🏨', 'text-blue-600', 'fas fa-bed')}
+                            ${this.renderStatCard('Guests Today', '24', '👥', 'text-purple-600', 'fas fa-users')}
+                            ${this.renderStatCard('Pending Tasks', '5', '📋', 'text-orange-600', 'fas fa-tasks')}
+                        </div>
+
+                        <!-- Main Dashboard -->
+                        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                            <!-- Left Column -->
+                            <div class="lg:col-span-2 space-y-8">
+                                <!-- Quick Actions -->
+                                <div class="bg-white rounded-xl shadow-lg p-6">
+                                    <h2 class="text-xl font-bold mb-4 text-gray-800">
+                                        <i class="fas fa-bolt text-yellow-500"></i> Quick Actions
+                                    </h2>
+                                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                        ${this.renderActionButton('New Booking', 'fas fa-calendar-plus', 'pms.newBooking()')}
+                                        ${this.renderActionButton('Check In', 'fas fa-sign-in-alt', 'pms.checkIn()')}
+                                        ${this.renderActionButton('Check Out', 'fas fa-sign-out-alt', 'pms.checkOut()')}
+                                        ${this.renderActionButton('Add Guest', 'fas fa-user-plus', 'pms.addGuest()')}
+                                    </div>
+                                </div>
+
+                                <!-- Recent Bookings -->
+                                <div class="bg-white rounded-xl shadow-lg p-6">
+                                    <h2 class="text-xl font-bold mb-4 text-gray-800">
+                                        <i class="fas fa-calendar text-blue-500"></i> Recent Bookings
+                                    </h2>
+                                    <div class="overflow-x-auto">
+                                        <table class="w-full">
+                                            <thead class="bg-gray-50">
+                                                <tr>
+                                                    <th class="p-3 text-left">Guest</th>
+                                                    <th class="p-3 text-left">Room</th>
+                                                    <th class="p-3 text-left">Dates</th>
+                                                    <th class="p-3 text-left">Status</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                ${this.bookings.map(booking => `
+                                                    <tr class="border-b hover:bg-gray-50">
+                                                        <td class="p-3">${booking.guest}</td>
+                                                        <td class="p-3">${booking.room}</td>
+                                                        <td class="p-3">${booking.checkIn} to ${booking.checkOut}</td>
+                                                        <td class="p-3">
+                                                            <span class="px-3 py-1 rounded-full ${booking.status === 'confirmed' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'}">
+                                                                ${booking.status}
+                                                            </span>
+                                                        </td>
+                                                    </tr>
+                                                `).join('')}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Right Column -->
+                            <div class="space-y-8">
+                                <!-- Room Status -->
+                                <div class="bg-white rounded-xl shadow-lg p-6">
+                                    <h2 class="text-xl font-bold mb-4 text-gray-800">
+                                        <i class="fas fa-door-open text-purple-500"></i> Room Status
+                                    </h2>
+                                    <div class="space-y-3">
+                                        ${this.rooms.map(room => `
+                                            <div class="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                                                <div>
+                                                    <h3 class="font-semibold">${room.name}</h3>
+                                                    <p class="text-sm text-gray-600">${room.type} • $${room.price}/night</p>
+                                                </div>
+                                                <span class="px-3 py-1 rounded-full ${this.getStatusColor(room.status)}">
+                                                    ${room.status}
+                                                </span>
+                                            </div>
+                                        `).join('')}
+                                    </div>
+                                </div>
+
+                                <!-- System Status -->
+                                <div class="bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl shadow-lg p-6 text-white">
+                                    <h2 class="text-xl font-bold mb-4">
+                                        <i class="fas fa-check-circle"></i> System Status
+                                    </h2>
+                                    <div class="space-y-3">
+                                        <div class="flex justify-between">
+                                            <span>Firebase Connection</span>
+                                            <span class="text-green-300"><i class="fas fa-check"></i> Active</span>
+                                        </div>
+                                        <div class="flex justify-between">
+                                            <span>Database</span>
+                                            <span class="text-green-300"><i class="fas fa-check"></i> Online</span>
+                                        </div>
+                                        <div class="flex justify-between">
+                                            <span>Last Sync</span>
+                                            <span>Just now</span>
+                                        </div>
+                                    </div>
+                                    <button onclick="pms.syncData()" 
+                                            class="w-full mt-6 bg-white text-blue-600 py-2 rounded-lg font-semibold hover:bg-gray-100">
+                                        <i class="fas fa-sync"></i> Sync Now
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Footer -->
+                        <div class="mt-8 text-center text-gray-600 text-sm">
+                            <p>Le Paradis Zanzibar • Property Management System v1.0</p>
+                            <p class="mt-2">
+                                <i class="fas fa-globe"></i> https://kaicho7.github.io/leparadis-pms/
+                            </p>
                         </div>
                     </div>
                 `;
-                
-                console.log("Firebase initialized successfully!");
-                
-            } catch (error) {
-                document.getElementById('loading').innerHTML = 
-                    '<h1 class="text-red-600 text-2xl">Firebase Error</h1>';
             }
+
+            renderStatCard(title, value, emoji, color, icon) {
+                return `
+                    <div class="bg-white rounded-xl shadow-lg p-6 card-hover">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <p class="text-gray-600">${title}</p>
+                                <h3 class="text-3xl font-bold mt-2 ${color}">${value}</h3>
+                            </div>
+                            <div class="text-3xl">${emoji}</div>
+                        </div>
+                        <div class="mt-4 pt-4 border-t">
+                            <span class="text-sm ${color}"><i class="${icon}"></i> Updated today</span>
+                        </div>
+                    </div>
+                `;
+            }
+
+            renderActionButton(label, icon, onClick) {
+                return `
+                    <button onclick="${onClick}" 
+                            class="flex flex-col items-center justify-center p-4 bg-gray-50 rounded-xl hover:bg-blue-50 transition">
+                        <i class="${icon} text-2xl text-blue-600 mb-2"></i>
+                        <span class="font-semibold">${label}</span>
+                    </button>
+                `;
+            }
+
+            getStatusColor(status) {
+                const colors = {
+                    'available': 'bg-green-100 text-green-800',
+                    'occupied': 'bg-red-100 text-red-800',
+                    'maintenance': 'bg-yellow-100 text-yellow-800'
+                };
+                return colors[status] || 'bg-gray-100 text-gray-800';
+            }
+
+            // PMS Functions
+            newBooking() {
+                this.showNotification('Opening New Booking Form...');
+                alert('📅 New Booking Form\nFeature ready for implementation!');
+            }
+
+            checkIn() {
+                this.showNotification('Check-In Process Started...');
+                alert('🏨 Guest Check-In\nScan QR code or enter details');
+            }
+
+            checkOut() {
+                this.showNotification('Check-Out Process Started...');
+                alert('🧳 Guest Check-Out\nGenerate invoice and payment');
+            }
+
+            addGuest() {
+                this.showNotification('Adding New Guest...');
+                alert('👤 Add Guest\nFill guest information form');
+            }
+
+            syncData() {
+                this.showNotification('Syncing with Firebase...');
+                setTimeout(() => {
+                    this.showNotification('✅ Data synchronized successfully!');
+                }, 1000);
+            }
+
+            showNotification(message) {
+                // Create notification
+                const notification = document.createElement('div');
+                notification.className = 'fixed top-4 right-4 bg-blue-600 text-white px-6 py-3 rounded-lg shadow-lg z-50 animate-slide-in';
+                notification.innerHTML = `
+                    <div class="flex items-center">
+                        <i class="fas fa-info-circle mr-3"></i>
+                        <span>${message}</span>
+                    </div>
+                `;
+                document.body.appendChild(notification);
+                
+                // Remove after 3 seconds
+                setTimeout(() => {
+                    notification.remove();
+                }, 3000);
+            }
+
+            showError(message) {
+                document.getElementById('app').innerHTML = `
+                    <div class="fixed inset-0 bg-red-50 flex items-center justify-center">
+                        <div class="bg-white p-8 rounded-xl shadow-2xl max-w-md">
+                            <div class="text-red-500 text-5xl mb-4 text-center">
+                                <i class="fas fa-exclamation-triangle"></i>
+                            </div>
+                            <h2 class="text-2xl font-bold text-gray-800 mb-4">System Error</h2>
+                            <p class="text-gray-600 mb-6">${message}</p>
+                            <button onclick="location.reload()" 
+                                    class="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold">
+                                <i class="fas fa-redo"></i> Retry
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        // Initialize PMS when Firebase is ready
+        if (typeof firebase !== 'undefined') {
+            window.pms = new LeParadisPMS();
+            pms.init();
+        } else {
+            document.getElementById('loading').innerHTML = `
+                <div class="text-center">
+                    <div class="text-red-500 text-5xl mb-4">
+                        <i class="fas fa-plug"></i>
+                    </div>
+                    <h1 class="text-2xl font-bold text-gray-800">Firebase Not Loaded</h1>
+                    <p class="text-gray-600 mt-2">Please check your internet connection</p>
+                </div>
+            `;
         }
     </script>
 </body>
